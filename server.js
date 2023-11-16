@@ -5,7 +5,7 @@ const fs =require('fs');
 // GLOBAL VARIABLE ##  TODO: TO BE REMOVED  ##
 const filePath = './feed.json';
 
-const fetchAbushChFeedUtil = function(){
+const fetchAbushChFeedLastWeekUtil = function(){
   const url = 'https://threatfox-api.abuse.ch/api/v1/';
   const body = {
     query: 'get_iocs',
@@ -17,7 +17,7 @@ const fetchAbushChFeedUtil = function(){
       url,
       json: true,
       body: body,
-    }, (error, response, body) => {
+    }, function(error, response, body){
       if (error) {
         reject(new Error("ERROR HAS OCCURED!!!"));
       } else {
@@ -50,11 +50,40 @@ const writeJSONToFileUtil = function(jsonObj, filePath){
 }
 
 
+const searchAbuseCHBySearchStringUtil = function(search_term){
+  const url = 'https://threatfox-api.abuse.ch/api/v1/';
+  const body = {
+    query: 'search_ioc',
+    search_term
+  };
+  return new Promise(function(resolve,reject){
+    request.post({
+      url,
+      json:true,
+      body
+    }, function(error, response, body){
+      if(error){
+        reject(error);
+      }
+      else{
+        if(body.query_status === 'ok'){
+          resolve(body.data);
+        }else{
+          reject(new Error(body.query_status));
+        }
+      }
+    });
+  });
+}
+
+
 const fetchFeedACH = async function(){
   try{
-    const feedData = await fetchAbushChFeedUtil();
+    const feedData = await fetchAbushChFeedLastWeekUtil();
     console.log(feedData.length);
     await writeJSONToFileUtil(feedData,filePath);
+    // const iocListForSearchString = await searchAbuseCHBySearchStringUtil('69.162.231.243');
+    // console.log(iocListForSearchString);
   }catch(error){
     console.error(error);
   }
@@ -62,6 +91,7 @@ const fetchFeedACH = async function(){
 
 // CALLING FETCH ABUSECH FEED FUNCTION
 fetchFeedACH();
+
 
 
 
