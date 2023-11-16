@@ -1,53 +1,67 @@
-import fetch from 'node-fetch';
-import fs from 'fs';
+const request = require('request');
+const fs =require('fs');
 
 
-const fetchAbuseChThreatFeedOfOneDay = async function(){
+// GLOBAL VARIABLE ##  TODO: TO BE REMOVED  ##
+const filePath = './feed.json';
+
+const fetchAbushChFeedUtil = function(){
   const url = 'https://threatfox-api.abuse.ch/api/v1/';
   const body = {
     query: 'get_iocs',
     days: 1
   };
 
-  const response = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify(body),
-    headers: {
-      'Content-Type': 'application/json'
+  return new Promise(function(resolve,reject){
+    request.post({
+      url,
+      json: true,
+      body: body,
+    }, (error, response, body) => {
+      if (error) {
+        reject(new Error("ERROR HAS OCCURED!!!"));
+      } else {
+        if(body.query_status === 'ok'){
+          resolve(body.data);
+        }else{
+          reject(new Error(body.data));
+        }
+      }
+    });
+  });
+}
+
+const writeJSONToFileUtil = function(jsonObj, filePath){
+  return new Promise(function(resolve, reject){
+    try{
+      const stringFeed = JSON.stringify(jsonObj);
+      fs.writeFile(filePath, stringFeed, function (error){
+        if(error){
+          throw new Error("WRITE FILE ERROR HAS OCCURED!!");
+        }else{
+          resolve("FILE WRITTEN SUCCESSFULLY!!");
+        }
+      });
+    }catch(error){
+        reject(error);
     }
   });
+  
+}
 
-  const data = await response.json();
 
-  if(data.query_status === "ok"){
-    return data.data;
-  }else{
-    throw new Error("ERROR HAS OCCURED!!!");
+const fetchFeedACH = async function(){
+  try{
+    const feedData = await fetchAbushChFeedUtil();
+    console.log(feedData.length);
+    await writeJSONToFileUtil(feedData,filePath);
+  }catch(error){
+    console.error(error);
   }
 }
 
-
-const writeThreatFeedToFile = function(threatFeedObj){
-  const stringFeed = JSON.stringify(threatFeedObj);
-  // console.log(stringFeed);
-  const filePath = './feed.json';
-  fs.writeFile(filePath, stringFeed, function (error){
-    if(error){
-      console.log(error);
-    }else{
-      console.log("FILE WRITTEN SUCCESSFULLY!!");
-    }
-  })
-}
-
-
-try{
-  const abuseCHThreatFeed = await fetchAbuseChThreatFeedOfOneDay();
-  writeThreatFeedToFile(abuseCHThreatFeed);
-}catch(e){
-  console.log(e);
-}
-
+// CALLING FETCH ABUSECH FEED FUNCTION
+fetchFeedACH();
 
 
 
